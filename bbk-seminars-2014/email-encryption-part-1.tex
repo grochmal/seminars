@@ -1,0 +1,548 @@
+\documentclass[hyperref={colorlinks=true}]{beamer}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{textcomp}
+
+%\usepackage{multirow}
+
+\mode<presentation>
+{
+  \usetheme{Warsaw}
+  \usecolortheme{seahorse}
+  \usecolortheme{orchid}
+  \setbeamercovered{transparent}
+}
+
+\title[PERSONAL CRYPTOGRAPHY - EMAIL ENCRYPTION 1]{PERSONAL CRYPTOGRAPHY \\
+                                                   EMAIL ENCRYPTION \\
+                                                   Part 1: preliminaries}
+\author{Michal Grochmal
+  <\href{mailto:grochmal@member.fsf.org}{grochmal@member.fsf.org}>}
+\institute{Queen Mary University of London}
+\date{24th of February 2014}
+\subject{Information Security}
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}{Outline}
+  \tableofcontents[pausesections]
+\end{frame}
+
+\section{Introduction to (some) cryptography}
+
+\subsection{Why is it useful?}
+\begin{frame}{Why is it useful?}
+  \begin{itemize}
+    \item Keeping your privacy is hard today.
+    \item We will talk about a way of keeping your private messages private.
+    \item Email is very easy to spoof, it goes in clear text over the internet.
+    \item Moreover, email is trivial to interfere with.
+    \item If I control the email server you send your email through I can
+change your messages as I want.
+    \item Even if I do not have access to that server I can still send email
+impersonating you.
+  \end{itemize}
+\end{frame}
+
+\subsection{Cryptography}
+\begin{frame}{Cryptography kindergarten}
+  \begin{itemize}
+    \item Cryptography has always been used to achieve \emph{confidentiality},
+yet before the 20th century the algorithm of encrypting/decrypting the message
+was the secret being kept.
+    \item This is not viable in the world with instantaneous communication.
+    \item Today cryptographic algorithms are open and are injected with a piece
+of information (the \emph{key}) that shall be kept secret to recover the
+message.
+    \item The format of the \emph{key} depends on the algorithm used.
+    \item Yet there is much more to cryptography than the encryption
+algorithms.  Algorithms alone are very poor at keeping information secret.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Cryptographic terms}
+  \begin{description}
+    \item[Plaintext (or cleartext)] \hfill \\
+is the message before any encryption.
+    \item[Cyphertext] \hfill \\
+is the message after encryption, it shall not be possible to recover the
+\emph{plaintext} from the \emph{cyphertext} without the right \emph{key}.
+    \item[Context] \hfill \\
+The typical context of cryptography is that we have two parties that wish to
+communicate through an insecure media.  Both parties need to perform certain
+steps and then use a cypher to communicate securely through this media.
+  \end{description}
+\end{frame}
+
+\begin{frame}{Cryptographic terms}
+  \begin{description}
+    \item[Cypher] \hfill \\
+is the encryption algorithm used.
+    \item[Encryption scheme] \hfill \\
+normally refers to a cypher and an algorithm that dictates how the plaintext
+and cyphertext shall be cared about.  Just using a cypher does not ensures that
+you communicate securely.
+    \item[Security] \hfill \\
+The word \textbf{security} is overloaded in cryptography, and in society in
+general.  We will only describe \emph{secure communication} as communication
+adhering to some guarantees.
+  \end{description}
+\end{frame}
+
+\begin{frame}{Types of cyphers}
+  \begin{description}
+    \item[Symmetric Cypher] \hfill \\
+is used by two parties with access to the same \emph{key}.
+    \item[Asymmetric Cypher] \hfill \\
+In an \emph{asymmetric cypher} each of the parties hold \emph{two keys}, one
+\emph{public key} that is shared with the other party and one \emph{private
+key} which is kept secret.
+    \item[Hybrid Cypher] \hfill \\
+is a use of both symmetric and asymmetric cyphers.  An asymmetric cypher is
+used to encrypt a generated key, this key is then used to encrypt the message
+using a symmetric cypher.
+  \end{description}
+\end{frame}
+
+\begin{frame}{Types of cyphers}
+  \begin{description}
+    \item[Digital signature] \hfill \\
+is a cypher that is \emph{not} used to encrypt a plaintext into a scrambled
+form.  Instead a digital signature is used to ensure that a piece of
+information was not tampered with.
+    \item[Cryptographic hash] \hfill \\
+A \emph{cryptographic hash} is a one way function, i.e. given the output of the
+function it is nearly impossible to determine its input.
+  \end{description}
+\end{frame}
+
+\begin{frame}{Typical characters of the cryptographic world}
+  \begin{description}
+    \item[Alice] wishes to communicate with Bob.
+    \item[Bob] wishes to communicate with Alice.
+    \item[Charlie] (or Carol) a third person that might wish to communicate.
+    \item[Eve] tries to eavesdrop communication between Alice and Bob.  Eve has
+only the resources of a casual eavesdropper.
+\href{https://xkcd.com/177/}{Eve on xkcd}.
+    \item[Mallory] an individual of malicious intent.  Mallory is often assumed
+to have almost infinite resources to tamper with the communication between
+Alice and Bob.
+    \item[Trent] a trusted friend of Alice and Bob.  Alice and Bob can exchange
+information through Trent.
+  \end{description}
+\end{frame}
+
+\subsection{Symmetric and Asymmetric Schemes}
+\begin{frame}{Symmetric schemes}
+  \begin{itemize}
+    \item Alice and Bob share a \emph{key}.
+    \item When Alice wants to send a message to Bob she encrypts it with this
+\emph{key}, Bob then decrypts the message with the same \emph{key}.  And
+vice-versa.
+    \item The \emph{key} must be shared by some other media.
+    \item It starts to become problematic when Charlie wishes to communicate:
+now Alice must agree on a different \emph{key} with Charlie, Bob as well need
+to agree on an even different \emph{key} with Charlie.  The number of keys that
+need to be kept secret grows with the number of participants (\emph{n})
+according to \texttt{n(n+1)/2}.  Which is quite a lot if you want to
+communicate with dozens of people.
+    \item This could be facilitated if Trent would hold everyone's keys and all
+communication would go through him.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Asymmetric schemes}
+  \begin{itemize}
+    \item Thankfully people came upon the idea of asymmetric cryptography.
+    \item Asymmetric cryptography uses asymmetric cyphers and digital
+signatures to do its work.  (note the difference between "asymmetric
+cryptography" and "asymmetric cypher" here.)
+    \item Alice has two keys one \emph{private} and one \emph{public}, Bob as
+well has two keys.
+    \item Alice and Bob exchange their public keys.
+    \item When Alice wishes to encrypt a message to Bob she uses Bob's public
+key to encrypt it, the resulting cyphertext can only be decrypted by Bob.
+    \item Alice can also sign a message with her private key.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Guarantees that asymmetric cryptography tries to provide}
+  \begin{description}
+    \item[Confidentiality] \hfill \\
+provided by encryption itself (by a hybrid cypher).
+    \item[Integrity] \hfill \\
+provided by digital signatures.
+    \item[Authenticity and/or Nonrepudiation] \hfill \\
+provided by digital signatures.
+  \end{description}
+\end{frame}
+
+\begin{frame}{Confidentiality}
+  \begin{itemize}
+    \item Ensures that without the right key the message is unreadable.
+    \item i.e. the plaintext cannot be easily guessed from the cyphertext.
+    \item This is normally what comes to mind when thinking about cryptography.
+Mostly because it is \emph{encryption} of the message that provides
+confidentiality.
+    \item Note that confidentiality by itself do not prevent a third party from
+tampering with the message.
+    \item Even worse, confidentiality do not ensures that the sender of the
+message is the individual you think it is.  In the asymmetric encryption scheme
+anyone can encrypt a message to you allowing for confidentiality, yet he can
+still impersonate someone else as being the sender of the message.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Integrity}
+  \begin{itemize}
+    \item Ensures that the message has not been tampered with.
+    \item Or better, ensures that if the message was tampered with it is alway
+possible to recognise that it was tampered.
+    \item Integrity is ensured by \emph{digital signatures}.
+    \item Tampering with email is easy, tampering with other forms of
+communication through the internet or through an intranet is not overly
+complicated either.
+    \item A digital signature is different for every message as it is generated
+from a hash of the message and the private key of the sender.
+    \item Note that even a correctly encrypted message may have been tampered
+with.  Mallory can hijack the original message and send his own message instead
+of the original one.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Authenticity and/or Nonrepudiation}
+  \begin{itemize}
+    \item Ensures that the message came from the person you believe it came
+from.
+    \item This is different from integrity in the fact that the sender might
+have never sent a message to you.
+    \item Authenticity is ensured by \emph{digital signatures}.
+    \item When Alice signs a message and sends it to Bob, Bob can verify
+Alice's signature and be certain that it came from Alice.
+    \item If Mallory tries to impersonate Alice he would need to fake her
+signature to pass as her to Bob.  Fortunately Alice keeps her private key
+secret and therefore Mallory cannot forge her signature.
+    \item On the other hand when Alice signs a message she cannot argue that it
+wasn't her who sent it.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Key Exchange}
+  \begin{itemize}
+    \item We talked a lot about Alice and Bob encrypting and signing messages.
+Yet, we did not talk about how they actually exchanged their keys.
+    \item Contrary to symmetric cryptography the public key do not need to be
+kept secret but the key exchange is still a weak point of the asymmetric
+scheme.
+    \item Mallory can monitor the key exchange, hijack both public keys during
+the exchange and send his own public key to both Bob and Alice.
+    \item Both, Alice and Bob, must ensure that the public keys they have
+belongs to each other.  One way to do it is to cross check the key fingerprint,
+a hash function applied to the key.
+    \item This need to be done in person, otherwise Mallory can forge the
+fingerprint as well.
+  \end{itemize}
+\end{frame}
+
+\subsection{History of PGP, OpenPGP and GnuPG}
+\begin{frame}{History of OpenPGP}
+  \begin{itemize}
+    \item Phil Zimmermann created the Pretty Good Privacy (PGP) program.
+    \item It was distributed as a book because of US law on exporting
+encryption.
+    \item PGP had issues with patents as it used IDEA and RSA algorithms.
+    \item In 1997 Zimmermann proposed the openPGP standard to IETF.
+    \item By 1999 Werner Koch released the Free Software implementation of the
+openPGP standard, the GNU Privacy Guard (GnuPG or GPG).
+    \item Zimmermann continues to maintain several versions of PGP software, as
+a commercial product.  Trading as PGP Inc.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{GnuPG and OpenPGP}
+  \begin{itemize}
+    \item OpenPGP is the standard, GnuPG is the \emph{implementation}.
+    \item Main standard is
+\href{https://tools.ietf.org/html/rfc4880}{RFC4880} (previously
+\href{https://tools.ietf.org/html/rfc2440}{RFC2440},
+\href{https://tools.ietf.org/html/rfc1991}{RFC1991})
+    \item Some standardised extensions are used in GnuPG: the camelia cypher
+from \href{https://tools.ietf.org/html/rfc5581}{RFC5581}, and the use of MIME
+email extension as in \href{https://tools.ietf.org/html/rfc3156}{RFC3156}.
+    \item GnuPG is probably the most widely used implementation: it is used by
+software packagers to sign the packages of their distributions, by developers
+to sign releases of their software and is promoted by the
+\href{http://www.fsf.org/}{FSF} and the \href{http://www.eff.org}{EFF} as
+\emph{the} software for email encryption.
+  \end{itemize}
+\end{frame}
+
+\section{Practice}
+
+\subsection{Generate a key}
+\begin{frame}{A simple walkthrough example}
+  \begin{itemize}
+    \item GnuPG has a plethora of options which we could discuss for hours,
+instead we have the time to go through a very rough example of setting it up.
+    \item Learning all options in GnuPG is not very useful as a starting point,
+you need to use it a couple of times to understand what are the things you can
+do and why are there certain things that GnuPG will not allow you.
+    \item One of the most painful parts for a beginner in the GnuPG interface
+is understanding when you are using the private and when you are using the
+public key.  Caches in new versions of GnuPG do not help the confusion.
+    \item The talks on email encryption are divided in three parts so you have
+a chance to acquaint yourself with GnuPG at one level before going forward.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Key Generation}
+  \begin{itemize}
+    \item With \verb|gpg --gen-key|
+    \item It'll ask for a key type, use "RSA and RSA".
+    \item For a key length, 2048 bits shall be enough for today's needs.
+    \item For a \emph{UID} which is constructed as:
+    \item[] \texttt{Real name (comment) <email>}.
+    \item And for a passphrase to protect your key.  The private key is never
+stored on disk in plain format, it is always encrypted with a key derived from
+your passphrase.
+    \item Choose a good passphrase.
+  \end{itemize}
+\end{frame}
+
+\subsection{Export and Import keys}
+\begin{frame}[fragile]\frametitle{Export the public key}
+  \begin{itemize}
+    \item Find your key with \verb|gpg -k|
+{\tiny
+\begin{verbatim}
+[mike@orion ~]$ gpg -k
+/home/mike/.gnupg/pubring.gpg
+---------------------------------
+pub   2048R/B713DB95 2015-02-21 [expires: 2015-04-22]
+uid                  Michal Grochmal (hacker) <grochmal@example.org>
+sub   2048R/B5054BF1 2015-02-21 [expires: 2015-04-22]
+\end{verbatim}
+}
+    \item Export it with \verb|gpg -a --export B713DB95|
+{\tiny
+\begin{verbatim}
+gpg -a --export B713DB95
+-----BEGIN PGP PUBLIC KEY BLOCK-----
+Version: GnuPG v2.0.14 (GNU/Linux)
+
+mQENBFTo9hYBCACql5PqnBnk3DJLtblqHWM3eNkKFI2YqkT1VpjA+1hXa3Z+JEs0
+HFpdqGYGrEPUIqZyVt1iB57Q/WMLKiEJb1uTd/6wtjqBP8T2hlA++iMTkNHESARN
+...
+/+MV8fBKOfoxVifoSQ==
+=jRQU
+-----END PGP PUBLIC KEY BLOCK-----
+\end{verbatim}
+}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Export the private key}
+  \begin{itemize}
+    \item Find your key with \verb|gpg -K|
+{\tiny
+\begin{verbatim}
+[mike@orion ~]$ gpg -K
+/home/mike/.gnupg/secring.gpg
+---------------------------------
+sec   2048R/B713DB95 2015-02-21 [expires: 2015-04-22]
+uid                  Michal Grochmal (hacker) <grochmal@example.org>
+ssb   2048R/B5054BF1 2015-02-21
+\end{verbatim}
+}
+    \item Export it with \verb|gpg -a --export-secret-keys B713DB95|
+{\tiny
+\begin{verbatim}
+[mike@orion ~]$ gpg -a --export-secret-keys B713DB95
+-----BEGIN PGP PRIVATE KEY BLOCK-----
+Version: GnuPG v2.0.14 (GNU/Linux)
+
+lQO+BFTo9hYBCACql5PqnBnk3DJLtblqHWM3eNkKFI2YqkT1VpjA+1hXa3Z+JEs0
+HFpdqGYGrEPUIqZyVt1iB57Q/WMLKiEJb1uTd/6wtjqBP8T2hlA++iMTkNHESARN
+...
+mBF/vn9q2+C7G4uoklkxYGqHZT8C3OZ+SdOBRW1o65xpqv/jFfHwSjn6MVYn6Ek=
+=Zycx
+-----END PGP PRIVATE KEY BLOCK-----
+\end{verbatim}
+}
+  \end{itemize}
+\end{frame}
+
+\subsection{Revocation and Key Exchange}
+\begin{frame}[fragile]\frametitle{Generate a revocation certificate}
+  \begin{itemize}
+    \item The revocation certificate will be needed if you lose access to your
+key.  Therefore keep it safe, even safer than the key.
+    \item Generate the certificate with
+    \item[] \verb|gpg -a --gen-revoke B713DB95|
+{\tiny
+\begin{verbatim}
+-----BEGIN PGP PUBLIC KEY BLOCK-----
+Version: GnuPG v2.0.14 (GNU/Linux)
+Comment: A revocation certificate should follow
+
+iQEfBCABAgAJBQJU6QPoAh0CAAoJEC/ku+e3E9uVVtMH/RPKV5W51g+stF3OTLEz
+KulRtua+kQWAh4N5c6MGi9vgKJdnBfMkZMl4GWDP4z9VG0TeIi9BqwABX6SMYZhD
+quKLr9t8lhYW3ZWNteGzX0DCQX+grJMtEL7TcStj0kVJ9EDAJKmpDZAYRjEZVmEI
+jSZrxds5y122155EBFc6rJK7BChbVBWCFPD9mhHgnfWebiO/FECjk/aCvHKHmySg
+fEiLna26aCRApSBDC3rjM3We3qoxRWZQ3J5FK6V5frC9ABp7MCqT69MmtThBWHl1
+JSK5xZ5QWk7K0zYkz8DWl7P5tDEvnOEi1fDaxq1AtFaPeBzCWPerJwZptvhDdbnb
+pWM=
+=pNId
+-----END PGP PUBLIC KEY BLOCK----
+\end{verbatim}
+}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Keep your keys safe}
+  \begin{itemize}
+    \item With all the processes above you can use the \verb|-o| flag to
+redirect the interesting output directly to a file, e.g.
+{\footnotesize
+\begin{verbatim}
+gpg -a -o mypublickey.asc --export B713DB95
+gpg -a -o mysecretkey.asc --export-secret-keys B713DB95
+gpg -a -o mykeyrevoke.asc --gen-revoke B713DB95
+\end{verbatim}
+}
+    \item Now you need to publish your public key and other people can send you
+encrypted emails.
+    \item The person to whom you will send your key must import it into GnuPG,
+therefore we will look at how to do that.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Import Mike's key}
+  \begin{itemize}
+    \item My public key can be found
+\href{http://grochmal.org/static/grochmal.asc}{here}, let's save and import it
+with:
+    \item[] \verb|gpg --import grochmal.asc|
+{\tiny
+\begin{verbatim}
+[mike@orion ~]$ wget http://grochmal.org/static/grochmal.asc
+[mike@orion ~]$ gpg --import grochmal.asc
+gpg: key C840C4F6: public key "Michal Grochmal (hacker) <mike@grochmal.org>"
+imported
+gpg: Total number processed: 1
+gpg:               imported: 1  (RSA: 1)
+\end{verbatim}
+}
+    \item Check if it is there using \verb|gpg -k|
+    \item Note that \verb|gpg -K| does not print the imported key.  Only the
+public key was imported, the private key is not part of the published key.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Sign Mike's key}
+  \begin{itemize}
+    \item How can you be sure that that key belongs to me?
+    \item Ask me in person my fingerprint, which by the way is:
+{\small
+\begin{verbatim}
+    D4BF 80AE EF39 263E B9C5  E80D 040E 2771 C840 C4F6
+\end{verbatim}
+}
+    \item Before you use this key to send encrypted email you need to tell
+GnuPG that you checked the fingerprint:
+    \item[] \verb|gpg --edit-key C840C4F6| - opens the command interface
+    \item[] \verb|Command> fpr| - shows the fingerprint, check it!
+    \item[] \verb|Command> sign| - signs the key (you may need to enter your
+private key password to use it to sign the key).
+    \item[] \verb|Command> check| - shows the signatures on the key.
+    \item[] \verb|Command> save| - saves the modifications to the key and
+exits.
+    \item An email client will warn about a non-signed key.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{"Trust"}
+  \begin{itemize}
+    \item Another heavily overloaded word in cryptography.
+    \item In GnuPG this word is even more overloaded, if you read anything
+about GnuPG you will see this word a lot.
+    \item When you signed my key you assured yourself that the key is Mike's
+key.
+    \item Trust on the other hand is a measure of how much you \emph{trust}
+that Mike vehemently checks all keys he signs.
+    \item e.g. your checking of keys right now is biased, how do you know I am
+Mike Grochmal?  I can be lying to you from the start!
+    \item Trust is very important for GnuPG, but we will leave the discussion
+of it for later.
+GnuPG.
+  \end{itemize}
+\end{frame}
+
+\subsection{Email Clients}
+\begin{frame}{Email clients that support GnuPG}
+  \begin{itemize}
+    \item Email clients recognise your GnuPG configuration and use it to send
+encrypted or signed emails.  As of this writing the following email clients
+support email encryption with GnuPG.
+    \item \href{https://www.mozilla.org/en-US/thunderbird/}{thunderbird} has an
+extension called \href{https://www.enigmail.net}{enigmail}.
+    \item \href{http://www.claws-mail.org/}{claws-mail} has a
+\href{http://www.claws-mail.org/plugin.php?plugin=gpg}{GPG plugin}.
+    \item \href{http://www.mutt.org/}{mutt} supports PGP out of the box, yet
+configuring mutt is not trivial.
+  \end{itemize}
+\end{frame}
+
+\section{Summary}
+
+\subsection{Different schemes you may encounter}
+\begin{frame}{Public and Private keys, different schemes}
+  \begin{itemize}
+    \item Today the most popular encryption scheme and cypher is RSA.
+    \item It uses the fact that factoring very large numbers is hard.
+    \item RSA private key can be used to sign and the public key to encrypt.
+    \item Yet not all encryption schemes allow for such a use of keys.
+    \item For example, the DSA scheme can only be used to make signatures.
+    \item Another asymmetric encryption scheme is the ElGamal scheme.
+    \item At the level of GnuPG it does not matter for us which scheme we are
+using.
+  \end{itemize}
+\end{frame}
+
+\subsection{Public and Private keys in use on email exchange}
+\begin{frame}
+  \begin{figure}
+\message{width = \the\textwidth}
+\includegraphics[width=0.9\textwidth]{encrypted-email-exchange.png}
+  \end{figure}
+\end{frame}
+
+\subsection{References and further reading}
+\begin{frame}{References and further reading}
+  \begin{description}
+    \item[FSF's email self defense] \hfill \\
+\href{https://emailselfdefense.fsf.org/en/}
+{https://emailselfdefense.fsf.org/en/}
+    \item[EFF's email self defence] \hfill \\
+\href{https://ssd.eff.org/en/module/how-use-pgp-linux}
+{https://ssd.eff.org/en/module/how-use-pgp-linux}
+    \item[Verssion for MS WIndows of EFF's ESD] \hfill \\
+\href{https://ssd.eff.org/en/module/how-use-pgp-windows-pc}
+{https://ssd.eff.org/en/module/how-use-pgp-windows-pc}
+    \item[PGP \& GPG by Michael W. Lucas (no starch press)] \hfill \\
+\href{http://www.nostarch.com/pgp.htm}
+{http://www.nostarch.com/pgp.htm}
+    \item[GNU Privacy Handbook] \hfill \\
+\href{https://www.gnupg.org/gph/en/manual.html}
+{https://www.gnupg.org/gph/en/manual.html}
+  \end{description}
+\end{frame}
+
+\end{document}
+

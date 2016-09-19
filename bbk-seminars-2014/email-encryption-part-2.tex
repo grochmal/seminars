@@ -1,0 +1,516 @@
+\documentclass[hyperref={colorlinks=true}]{beamer}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{textcomp}
+
+%\usepackage{multirow}
+
+\mode<presentation>
+{
+  \usetheme{Warsaw}
+  \usecolortheme{seahorse}
+  \usecolortheme{orchid}
+  \setbeamercovered{transparent}
+}
+
+\title[PERSONAL CRYPTOGRAPHY - EMAIL ENCRYPTION 2]{PERSONAL CRYPTOGRAPHY \\
+                                                   EMAIL ENCRYPTION \\
+                                                   Part 2: communicating}
+\author{Michal Grochmal
+  <\href{mailto:grochmal@member.fsf.org}{grochmal@member.fsf.org}>}
+\institute{Queen Mary University of London}
+\date{24th of March 2014}
+\subject{Information Security}
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}{Outline}
+  \tableofcontents[pausesections]
+\end{frame}
+
+\section{What GnuPG does}
+
+\subsection{Encrypting files}
+\begin{frame}[fragile]\frametitle{Encrypting and signing files}
+  \begin{itemize}
+    \item GnuPG is a tool to encrypt streams of bytes, not only emails.
+    \item Understanding how GnuPG encrypts, decrypts and signs any stream of
+bytes will help us understand what it actually does to emails.
+    \item You can encrypt a file using asymmetric or symmetric cryptography.
+    \item GnuPG has a \verb|--verbose| flag, or just \verb|-v| for short.
+Using \verb|-vv| shows what GnuPG is doing in detail, and \verb|-vvv| outputs
+debug information.  If you are in doubt about what GnuPG is doing use
+\verb|gpg -vvv ...|.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Encrypt using an asymmetric cypher}
+  \begin{itemize}
+    \item Actually, a hybrid cypher is used.
+  \end{itemize}
+{\footnotesize
+\begin{verbatim}
+[~]$ echo "super secret stuff" >> msg
+[~]$ gpg -vv -a -e -r grochmal@example.org -o msg.asc msg
+gpg: using PGP trust model
+gpg: key C870C4F6: accepted as trusted key
+gpg: key 0EBE0D44: accepted as trusted key
+gpg: using subkey 91BA249B instead of primary key C870C4F6
+gpg: This key belongs to us
+gpg: reading from `msg'
+gpg: writing to `msg.asc'
+gpg: RSA/AES256 encrypted for: "91BA249B Michal Grochmal <...>"
+\end{verbatim}
+}
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Encrypt using a symmetric cypher}
+{\footnotesize
+\begin{verbatim}
+[~]$ gpg -a -c -o msg-sym.asc msg
+[~]$ cat msg-sym.asc
+-----BEGIN PGP MESSAGE-----
+Version: GnuPG v2.0.22 (GNU/Linux)
+
+jA0EAwMC5V2uXllXmQK3ySzqw8HwJ7V4478211bn9C16nyflh1T/lGT/jTwLEcN7
+xiIw4GndX0z3CayQXA==
+=DMot
+-----END PGP MESSAGE-----
+[~]$ cat msg.asc
+-----BEGIN PGP MESSAGE-----
+Version: GnuPG v2.0.22 (GNU/Linux)
+
+hQEMA8gpV8eQuiSbAQf+KyCukr8MQdDAFvPE3y9HSY0oDhbxodCNmkNK/4CjgfnC
+...
+x9IYzVAAS8u7aCDurWgdhrXw
+=qhIT
+-----END PGP MESSAGE-----
+\end{verbatim}
+}
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Decrypting}
+{\footnotesize
+\begin{verbatim}
+[~]$ gpg -d msg.asc
+You need a passphrase to unlock the secret key for
+user: "Michal Grochmal <grochmal@example.org>"
+2048-bit RSA key, ID 91BA249B, created 2014-08-21 (...)
+
+gpg: encrypted with 2048-bit RSA key, ID 91BA249B, ...
+      "Michal Grochmal <grochmal@example.org>"
+super secret stuff
+[~]$ gpg -d msg-sym.asc
+gpg: CAST5 encrypted data
+gpg: encrypted with 1 passphrase
+super secret stuff
+gpg: WARNING: message was not integrity protected
+\end{verbatim}
+}
+  \begin{itemize}
+    \item The command is the same, how gpg knows how to decrypt the data?
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{A GnuPG message}
+  \begin{itemize}
+    \item Actually an openPGP message, GnuPG only adds the ASCII armour.
+  \end{itemize}
+{\scriptsize
+\begin{verbatim}
+[~]$ gpg -vv -d msg.asc
+gpg: armor: BEGIN PGP MESSAGE
+Version: GnuPG v2.0.22 (GNU/Linux)
+:pubkey enc packet: version 3, algo 1, keyid C82957C791BA249B
+        data: [2046 bits]
+gpg: armor header:
+gpg: public key is 91BA249B
+gpg: using subkey 91BA249B instead of primary key C870C4F6
+...
+gpg: public key encrypted data: good DEK
+:encrypted data packet: length: 81 mdc_method: 2
+gpg: encrypted with 2048-bit RSA key, ID 91BA249B, ...
+gpg: AES256 encrypted data
+:compressed packet: algo=2 :literal data packet: mode b (62), ...
+gpg: original file name='msg'
+super secret stuff
+gpg: decryption okay
+\end{verbatim}
+}
+\end{frame}
+
+\subsection{Signing}
+\begin{frame}[fragile]\frametitle{Sign and compress the message}
+{\footnotesize
+\begin{verbatim}
+[~]$ gpg -a -o msg-sign.asc -s msg
+You need a passphrase to unlock the secret key for
+user: "Michal Grochmal <grochmal@example.org>"
+2048-bit RSA key, ID 8A0ACBDA, created 2015-02-15 (...)
+
+[~]$ cat msg-sign.asc
+-----BEGIN PGP MESSAGE-----
+Version: GnuPG v2.0.22 (GNU/Linux)
+
+owEBTAGz/pANAwACAXFPKDF6CsvaAawcYgNtc2dVC0/cc3VwZXIgc2VjcmV0IHN0
+...
+=SriB
+-----END PGP MESSAGE-----
+
+[~]$ gpg --verify msg-sign.asc
+gpg: Signature made Thu 19 Mar 2015 10:38:20 PM UTC ...
+gpg: Good signature from "Michal Grochmal <...>"
+\end{verbatim}
+}
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Sign a clear message}
+{\scriptsize
+\begin{verbatim}
+[~]$ gpg -a -o msg-sign.asc --clearsign msg
+You need a passphrase to unlock the secret key for
+user: "Michal Grochmal <grochmal@example.org>"
+2048-bit RSA key, ID 8A0ACBDA, created 2015-02-15 (...)
+[~]$ cat msg-sign.asc
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
+
+super secret stuff
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2.0.22 (GNU/Linux)
+
+iQEcBAEBAgAGBQJVC1GhAAoJEHFPKDF6CsvayoIH/RXj+DNcGxEmMOP+4GFJuGiD
+...
+=Hjiw
+-----END PGP SIGNATURE-----
+[~]$ gpg --verify msg-sign.asc
+gpg: Signature made Thu 19 Mar 2015 10:45:53 PM UTC ...
+gpg: Good signature from "Michal Grochmal <...>"
+\end{verbatim}
+}
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Detached signature}
+{\footnotesize
+\begin{verbatim}
+[~]$ gpg -a -o msg-sign.asc -b msg
+You need a passphrase to unlock the secret key for
+user: "Michal Grochmal <grochmal@example.org>"
+2048-bit RSA key, ID 8A0ACBDA, created 2015-02-15 (...)
+[~]$ cat msg-sign.asc
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2.0.22 (GNU/Linux)
+
+iQEcBAABAgAGBQJVC1L1AAoJEHFPKDF6CsvabIUH/j6Jdwatc8MpO87XqDxm4SOs
+...
+=GPnh
+-----END PGP SIGNATURE-----
+[~]$ gpg --verify msg-sign.asc  # Ops!
+gpg: no signed data
+gpg: can't hash datafile: No data
+[~]$ gpg --verify msg-sign.asc msg
+gpg: Signature made Thu 19 Mar 2015 10:51:33 PM UTC ...
+gpg: Good signature from "Michal Grochmal <...>"
+\end{verbatim}
+}
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Combine with encryption}
+{\scriptsize
+\begin{verbatim}
+[~]$ gpg -a -s -e -r grochmal@example.org -o msg-sign-enc.asc msg
+You need a passphrase to unlock the secret key for
+user: "Michal Grochmal <grochmal@example.org>"
+2048-bit RSA key, ID 8A0ACBDA, created 2015-02-15 (...)
+[~]$ cat msg-sign-enc.asc
+-----BEGIN PGP MESSAGE-----
+Version: GnuPG v2.0.22 (GNU/Linux)
+
+hQEMA8gpV8eQuiSbAQf+OXnwvgroSJi9/cGJLfe+0KpYfIX0i4t/36Lqu7Lpe7cK
+...
+-----END PGP MESSAGE-----
+[~]$ gpg -d msg-sign-enc.asc
+You need a passphrase to unlock the secret key for
+...
+gpg: encrypted with 2048-bit RSA key, ID 91BA249B, ...
+      "Michal Grochmal <grochmal@example.org>"
+super secret stuff
+gpg: Signature made Thu 19 Mar 2015 11:06:36 PM UTC ...
+gpg: Good signature from "Michal Grochmal <...>"
+\end{verbatim}
+}
+\end{frame}
+
+\subsection{Messages}
+\begin{frame}[fragile]\frametitle{Attachments, encryption and singing}
+  \begin{itemize}
+    \item Shall the signature be inside or outside the encryption?  Depends on
+the media through which the message will go through.
+    \item Now that we can encrypt and sign different types of files (not only
+emails) we can use encrypted attachments.
+    \item Note that binary files can be encrypted in the same fashion:
+{\footnotesize
+\begin{verbatim}
+[~]$ gpg -a -s -e -r grochmal@example.org -o l.asc l.png
+[~]$ gpg -o l2.png -d l.asc
+[~]$ diff l.png l2.png
+[~]$
+\end{verbatim}
+}
+  \end{itemize}
+\end{frame}
+
+\section{Communicate with others}
+
+\subsection{Signed keys and Trust}
+\begin{frame}{Web of Trust}
+  \begin{itemize}
+    \item We know what GnuPG does with its encryption and singing functions.
+And that it is not extremely complex.  Yet we were using only a single key in
+all examples above.
+    \item Key management is the weakest point of cryptography.
+    \item The \emph{keychain} maintained by GnuPG is a great part of the
+functionality of the program.
+    \item Your private keys, all public keys you need to communicate with other
+people and several certificates (we will talk about these later) are in the
+keychain.
+    \item You exchange keys with other people and your keychain grows, yet
+exchanging keys with every person you want to communicate is likely impossible.
+    \item Thus the \emph{web of trust} is a way of trusting a key of a person
+that you have never met, yet you have common friends.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Signing keys}
+  \begin{itemize}
+    \item The web of trust starts with the feature that you can sign keys of
+other people.  The fact that you sign someone's key means that you are certain
+that that key belongs to that person.
+    \item You shall really be certain that someone is the person he claims to
+be before signing their key.
+    \item When Bob signs Alice's key he is using his private key to encrypt
+Alice's public key, then Bob sends to Alice the cyphertext.  Anyone who has a
+copy of Bob's public key can get Alice's key from this cyphertext and compare
+it with their copy of Alice's public key.
+    \item There is no reason to sign a private key.  It should be secret!
+    \item Signatures of keys remain on the keychain.
+    \item It can be said that people collect signatures on their keys, with
+more signatures it is easier that someone can validate their key without
+personally checking it.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Trust in a key signature}
+  \begin{itemize}
+    \item The signature model would work well if everyone signed other people's
+keys extremely carefully.  Yet, you cannot assume that that is the case!
+    \item \emph{Trust} is \emph{your} evaluation of how well someone checks
+keys before signing them.
+    \item Trust is a completely private measure: whilst you send signatures of
+their keys to their owners, you never need to reveal your trust in someone.
+    \item While key signatures are a measure of how many people can assure that
+you are who you claim to be, trust is your own personal measure of how much you
+trust someone you know to assure you of the identity of a third person.
+    \item Remember this!  Signatures and trust are very different things!
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Signing keys vs. Trusting people}
+  \begin{itemize}
+    \item Bob and Alice met and signed their keys.
+    \item Alice and Charlie met and signed their keys.
+    \item If Bob \emph{fully} trusts that Alice do not sign keys without
+checking them properly he can check Charlie's key using Alice's signature on
+that key.  Then Bob can communicate with Charlie.
+    \item This does not mean that Charlie can communicate with Bob!  That
+depends on Charlie's trust in Alice's carefulness.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Levels of Trust}
+  \begin{itemize}
+    \item GnuPG allows different trust levels: "don't know" (the default), "do
+not trust", "trust marginally", "trust fully" and "trust ultimately".
+    \item "don't know" and "do not trust" are self explanatory.
+    \item "ultimate trust" is for your own keys.
+    \item Finally, "full" and "marginal" trust irradiates to the keys that are
+signed by the trusted people.  To consider a key valid (by default) it must be
+signed by yourself, by a person you fully trust or by three people which you
+marginally trust.
+    \item \verb|--completes-needed| and \verb|--marginals-needed| can be used
+with \verb|gpg| to tune this number.
+    \item Note that their trust in other people has nothing to do with your
+trust.
+    \item Note that you can trust people you have never met and signed a key,
+it is your choice!
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Sign a key with GnuPG}
+  \begin{itemize}
+    \item Remember that \verb|gpg --edit-key <key>| has a menu of subcommands.
+    \item Use \verb|gpg --fingerprint <key>| or \verb|fpr| subcommand and check
+the fingerprint with the owner of the key.
+    \item Use \verb|gpg --sign-key <key>| or \verb|sign| subcommand to sign it
+with your key.
+    \item Use \verb|gpg --check-sigs <key>| or \verb|check| subcommand to
+verify if a signature matches.
+    \item If public keys are missing the signatures will not be verified, use
+\verb|gpg --list-sigs| for a list of the keys used in the signatures.
+    \item If you're using the subcommands in \verb|gpg --edit-key <key>| you
+need to \verb|save| the key after signing it.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Sign a key, command line example}
+{\scriptsize
+\begin{verbatim}
+[~]$ gpg --edit-key 0x76D52AC6
+pub  1024D/76D52AC6  created: 2003-06-03  expires: 2018-02-03  usage: S
+                     trust: unknown       validity: unknown
+sub  1024g/1206F606  created: 2003-06-03  expired: 2013-05-31  usage: E
+[ unknown] (1). Michal Grochmal <grochmal@example.com>
+gpg> fpr
+pub   1024D/76D52AC6 2003-06-03 Michal Grochmal <grochmal@example.com>
+ Primary key fingerprint: 4673 48C8 5F3A 5A9B 2B0D  ...
+gpg> sign
+Really sign all user IDs? (y/N) y
+...
+Really sign? (y/N) y
+You need a passphrase to unlock the secret key for$
+user: "Michal Grochmal (hacker) <grochmal@example.org>"$
+2048-bit RSA key, ID B713DB95, created 2015-02-21$
+gpg> check
+uid  Michal Grochmal <grochmal@example.com>
+sig!3  C840C4F6 2015-02-19  [self-signature]
+sig!   B713DB95 2015-02-21  Michal Grochmal (hacker) <...>
+gpg> save
+\end{verbatim}
+}
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Trust a person in GnuPG}
+{\scriptsize
+\begin{verbatim}
+[~]$ gpg --edit-key 0x76D52AC6
+pub  1024D/76D52AC6  created: 2003-06-03  expires: 2018-02-03  usage: S
+                     trust: unknown       validity: unknown
+sub  1024g/1206F606  created: 2003-06-03  expired: 2013-05-31  usage: E
+[ unknown] (1). Michal Grochmal <grochmal@example.com>
+
+gpg> trust
+Please decide how far you trust this user
+to correctly verify other users' keys
+(by looking at passports, checking
+fingerprints from different sources, etc.)
+  1 = I don't know or won't say
+  2 = I do NOT trust
+  3 = I trust marginally
+  4 = I trust fully
+  5 = I trust ultimately
+  m = back to the main menu
+Your decision? 4
+
+gpg> save
+\end{verbatim}
+}
+\end{frame}
+
+\subsection{Keyservers}
+\begin{frame}{Keyservers}
+  \begin{itemize}
+    \item Exchanging keys in person or through email is painful.  Keyservers
+were created to automate key exchange.
+    \item You upload your key to a keyserver and others can download it, you
+also can download other people's keys from the keyserver.  When you sign
+someone's key you can upload it to the keyserver as well.
+    \item Keyservers can only add data to a key, never delete anything.  This
+is because the entire web of trust is not in sync all the time.
+    \item Keyservers sync keys between themselves.
+    \item Be careful when uploading a non-expiring key to a keyserver, it will
+stay there forever.  It will be bound to your name forever.
+    \item How can we manage to delete keys or UIDs that get compromised?  The
+answer is certificates.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Using a keyserver with GnuPG}
+{\footnotesize
+\begin{verbatim}
+[~]$ gpg --keyserver pgp.mit.edu --recv-key 0xC840C4F6
+gpg: requesting key C839C4F6 from hkp server pgp.mit.edu
+gpg: key C840C4F6: public key "Michal Grochmal <...>"
+imported
+gpg: Total number processed: 1
+gpg:               imported: 1  (RSA: 1)
+
+[~]$ gpg --keyserver pgp.mit.edu --send-key 0xC840C4F6
+gpg: sending key C840C4F6 to hkp server pgp.mit.edu
+[~]$
+\end{verbatim}
+}
+  \begin{description}
+    \item[Some public keyservers are] \hfill \\
+hkp://pgp.mit.edu, hpk://keys.gnupg.net, http://http-keys.gnupg.net,
+mailto:pgp-public-keys@keys.nl.pgp.net, hpk://wwwkeys.uk.pgp.net
+  \end{description}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Certificates, what the heck these actually are}
+  \begin{itemize}
+    \item In simple terms, a certificate is a public key signed with the
+private key.  Integrity of the public key is this way achieved.  Then, several
+pieces of information can be bound to the public key by signing them with the
+private key.
+    \item In the case of GnuPG the piece of information bound to the public key
+is the UID (your name and email address).
+    \item A certificate can contain other information, e.g. signatures with
+other private keys.
+    \item A certificate can only be created or modified with the possession of
+the private key, therefore if the public key is verified the rest of the
+information in the certificate can be trusted.
+    \item The revocation certificate is a good example.
+    \item Your keys and UIDs are actually stored as certificates, see the text
+\verb|[self-signature]| in the examples above.
+  \end{itemize}
+\end{frame}
+
+\section{Consequences and Summary}
+
+\subsection{How all this works with Email}
+\begin{frame}{Back to Email}
+  \begin{itemize}
+    \item Email is just plain text.  When email goes through SMTP it look
+pretty much like HTTP: a bunch of headers and then the body.
+    \item Email clients actually connect to email servers in the same way that
+browsers connect to websites through HTTP.
+    \item Email is older than HTTP, it has a concept of email relays that coped
+with connectivity issues before the internet (anyone remembers UUCP?).
+    \item Unfortunately you cannot easily mix HTTPS and GnuPG encryption,
+therefore using a webmail client with GnuPG is not practical.  Your private key
+would need to be on the server, which is a bad idea.
+    \item If there's still time, talk about bad randoms.
+  \end{itemize}
+\end{frame}
+
+\subsection{References and further reading}
+\begin{frame}{References and further reading}
+  \begin{description}
+    \item[GNU Privacy Handbook] \hfill \\
+\href{https://www.gnupg.org/gph/en/manual.html}
+{https://www.gnupg.org/gph/en/manual.html}
+    \item[Justin Miller's GnuPG with Mutt Guide] \hfill \\
+\href{http://codesorcery.net/old/mutt/mutt-gnupg-howto}
+{http://codesorcery.net/old/mutt/mutt-gnupg-howto}
+  \end{description}
+\end{frame}
+
+\end{document}
+
